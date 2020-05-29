@@ -233,10 +233,16 @@ def install_backend_static_files(app, env):
 
         copyfile(source_file_path, dest_file_path)
 
-        if dest_file_path.endswith('.js'):
-            app.add_javascript(os.path.relpath(dest_file_path, STATICS_DIR_PATH))
-        elif dest_file_path.endswith('.css'):
-            app.add_stylesheet(os.path.relpath(dest_file_path, STATICS_DIR_PATH))
+        if sphinx.__version__ > '2':
+            if dest_file_path.endswith('.js'):
+                app.add_js_file(os.path.relpath(dest_file_path, STATICS_DIR_PATH))
+            elif dest_file_path.endswith('.css'):
+                app.add_css_file(os.path.relpath(dest_file_path, STATICS_DIR_PATH))
+        else:
+            if dest_file_path.endswith('.js'):
+                app.add_javascript(os.path.relpath(dest_file_path, STATICS_DIR_PATH))
+            elif dest_file_path.endswith('.css'):
+                app.add_stylesheet(os.path.relpath(dest_file_path, STATICS_DIR_PATH))
 
 
 def download_images(app, env):
