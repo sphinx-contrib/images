@@ -265,13 +265,15 @@ def download_images(app, env):
                       .format(src, dst))
 
 
-def configure_backend(app):
+def configure_backend(app, main_config):
     global DEFAULT_CONFIG
 
     config = copy.deepcopy(DEFAULT_CONFIG)
     config.update(app.config.images_config)
     app.config.images_config = config
 
+def builder_init(app):
+    config = app.config.images_config
     ensuredir(os.path.join(app.env.srcdir, config['cache_path']))
 
     # html builder
@@ -346,7 +348,8 @@ def setup(app):
     global DEFAULT_CONFIG
     app.require_sphinx('1.0')
     app.add_config_value('images_config', DEFAULT_CONFIG, 'env')
-    app.connect('builder-inited', configure_backend)
+    app.connect('config-inited', configure_backend)
+    app.connect('builder-inited', builder_init)
     app.connect('env-updated', download_images)
     app.connect('env-updated', install_backend_static_files)
 
