@@ -157,10 +157,11 @@ class ImageDirective(Directive):
         if self.is_remote(self.arguments[0]):
             img['remote'] = True
             if download:
-                img['uri'] = os.path.join(conf['cache_path'], hashlib.sha1(self.arguments[0].encode()).hexdigest())
+                reluri = os.path.join(conf['cache_path'], hashlib.sha1(self.arguments[0].encode()).hexdigest())
+                img['uri'] = os.path.join('/', reluri) # relative to source dir
                 img['remote_uri'] = self.arguments[0]
-                env.remote_images[img['remote_uri']] = img['uri']
-                env.images.add_file('', img['uri'])
+                env.remote_images[img['remote_uri']] = reluri
+                env.images.add_file('', reluri)
             else:
                 img['uri'] = self.arguments[0]
                 img['remote_uri'] = self.arguments[0]
