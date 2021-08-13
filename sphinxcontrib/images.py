@@ -161,6 +161,7 @@ class ImageDirective(Directive):
                 img['uri'] = os.path.join('/', reluri) # relative to source dir
                 img['remote_uri'] = self.arguments[0]
                 env.remote_images[img['remote_uri']] = reluri
+                env.images.add_file('', img['uri'])
             else:
                 img['uri'] = self.arguments[0]
                 img['remote_uri'] = self.arguments[0]
