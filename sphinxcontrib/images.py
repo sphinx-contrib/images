@@ -250,6 +250,8 @@ def download_images(app, env):
             len(env.remote_images)):
 
         dst = os.path.join(env.srcdir, env.remote_images[src])
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+
         if not os.path.isfile(dst):
             logger.info('{} -> {} (downloading)'
                       .format(src, dst))
