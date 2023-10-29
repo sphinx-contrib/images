@@ -29,9 +29,12 @@ except:
     from docutils.parsers.rst import Directive
 
 try:
-    from sphinx.util import status_iterator
+    from sphinx.util.display import status_iterator
 except ImportError:
-    pass
+    try:
+        from sphinx.util import status_iterator
+    except ImportError:
+        pass
 
 from sphinx.util.console import brown
 from sphinx.util.osutil import ensuredir
