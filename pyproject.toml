@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sphinxcontrib-images"
+version = "0.9.4"
+requires-python = ">= 3.9"
+
+authors = [
+    {name = "Tomasz Czyż", email = "tomasz.czyz@gmail.com"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Documentation",
+]
+dependencies = [
+    "requests>2.2,<3",
+    "setuptools",  # TODO: migrate off of pkg_resources
+    "sphinx>=5.0",
+]
+description = "Sphinx extension for thumbnails"
+license = {text = "Apache 2"}
+readme = "README.rst"
+
+[project.entry-points."sphinxcontrib.images.backend"]
+FakeBackend = "sphinxcontrib_images_lightbox2:LightBox2"
+LightBox2 = "sphinxcontrib_images_lightbox2:LightBox2"
+
+[project.scripts]
+sphinxcontrib-images = "sphinxcontrib.images:main"
+
+[project.urls]
+Documentation = "https://sphinxcontrib-images.readthedocs.io/"
+Download = "https://pypi.python.org/pypi/sphinxcontrib-images"
+Issues = "https://github.com/sphinx-contrib/images/issues"
+Repository = "https://github.com/sphinx-contrib/images"
+
+[tool.setuptools]
+packages = ["sphinxcontrib_images_lightbox2"]
+py-modules = ["sphinxcontrib.images"]
