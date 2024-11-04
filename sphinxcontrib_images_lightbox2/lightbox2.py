@@ -10,7 +10,7 @@ class LightBox2(images.Backend):
         'lightbox2/dist/images/loading.gif',
         'lightbox2/dist/js/lightbox-plus-jquery.min.js',
         'lightbox2/dist/js/lightbox-plus-jquery.min.map',
-        'lightbox2/dist/css/lightbox.css',
+        'lightbox2/dist/css/lightbox.min.css',
         'lightbox2-customize/jquery-noconflict.js',
         'lightbox2-customize/pointer.css'
     )
