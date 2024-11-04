@@ -28,7 +28,6 @@ classifiers = [
 ]
 dependencies = [
     "requests>2.2,<3",
-    "setuptools",  # TODO: migrate off of pkg_resources
     "sphinx>=5.0",
 ]
 description = "Sphinx extension for thumbnails"
