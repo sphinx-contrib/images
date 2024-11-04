@@ -48,6 +48,13 @@ Download = "https://pypi.python.org/pypi/sphinxcontrib-images"
 Issues = "https://github.com/sphinx-contrib/images/issues"
 Repository = "https://github.com/sphinx-contrib/images"
 
-[tool.setuptools]
-packages = ["sphinxcontrib_images_lightbox2"]
-py-modules = ["sphinxcontrib.images"]
+[tool.setuptools.packages.find]
+include = ["sphinxcontrib*"]
+
+[tool.setuptools.package-data]
+sphinxcontrib_images_lightbox2 = [
+    "lightbox2/dist/css/lightbox.min.css",
+    "lightbox2/dist/images/*",
+    "lightbox2/dist/js/lightbox-plus-jquery.min.*",
+    "lightbox2-customize/*",
+]
