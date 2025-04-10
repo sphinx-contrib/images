@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__version__ = '0.9.4'
+__version__ = '0.9.5.pre1'
 __author__ = 'Tomasz Czyż <tomaszczyz@gmail.com>'
 __license__ = "Apache 2"
 
