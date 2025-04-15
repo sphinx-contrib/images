@@ -36,7 +36,6 @@ except ImportError:
     except ImportError:
         pass
 
-from sphinx.util.console import brown
 from sphinx.util.osutil import ensuredir
 
 from docutils import nodes
@@ -231,7 +230,7 @@ def install_backend_static_files(app, env):
         if hasattr(app.builder, 'status_iterator') else status_iterator)(
             files_to_copy,
             'Copying static files for sphinxcontrib-images...',
-            brown, len(files_to_copy)):
+            'brown', len(files_to_copy)):
 
         dest_file_path = os.path.join(dest_path, source_file_path)
 
@@ -257,7 +256,7 @@ def download_images(app, env):
         if hasattr(app.builder, 'status_iterator') else status_iterator)(
             env.remote_images,
             'Downloading remote images...',
-            brown,
+            'brown',
             len(env.remote_images)):
 
         dst = os.path.join(env.srcdir, env.remote_images[src])
