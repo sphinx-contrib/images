@@ -9,9 +9,9 @@ import sys
 import copy
 import uuid
 import hashlib
+import importlib.metadata
 import argparse
 import functools
-import pkg_resources
 
 import sphinx
 from sphinx.util.osutil import copyfile
@@ -29,9 +29,12 @@ except:
     from docutils.parsers.rst import Directive
 
 try:
-    from sphinx.util import status_iterator
+    from sphinx.util.display import status_iterator
 except ImportError:
-    pass
+    try:
+        from sphinx.util import status_iterator
+    except ImportError:
+        pass
 
 from sphinx.util.console import brown
 from sphinx.util.osutil import ensuredir
@@ -57,6 +60,14 @@ DEFAULT_CONFIG = dict(
     override_image_directive=False,
     show_caption=False,
 )
+
+def get_entry_points():
+    group = 'sphinxcontrib.images.backend'
+    return (
+        importlib.metadata.entry_points(group=group)
+        if sys.version_info > (3, 10)
+        else importlib.metadata.entry_points()[group]
+    )
 
 
 class Backend(object):
@@ -282,15 +293,14 @@ def configure_backend(app):
     backend_name_or_callable = config['backend']
     if isinstance(backend_name_or_callable, str):
         try:
-            backend = list(pkg_resources.iter_entry_points(
-                                group='sphinxcontrib.images.backend',
-                                name=backend_name_or_callable))[0]
-            backend = backend.load()
-        except IndexError:
+            backend = next(
+                i for i in get_entry_points() if i.name == backend_name_or_callable
+            ).load()
+        except StopIteration:
             raise IndexError("Cannot find sphinxcontrib-images backend "
                                 "with name `{}`.".format(backend_name_or_callable))
     elif callable(backend_name_or_callable):
-        pass
+        backend = backend_name_or_callable
     else:
         raise TypeError("sphinxcontrib-images backend is configured "
                         "improperly. It has to be a string (name of "
@@ -306,9 +316,7 @@ def configure_backend(app):
     except TypeError as error:
         logger.info('Cannot instantiate sphinxcontrib-images backend `{}`. '
                  'Please, select correct backend. Available backends: {}.'
-                 .format(config['backend'],
-                ', '.join(ep.name for ep in pkg_resources.iter_entry_points(group='sphinxcontrib.images.backend'))
-                 ))
+                 .format(config['backend'], ', '.join(ep.name for ep in get_entry_points())))
         raise SystemExit(1)
 
     # remember the chosen backend for processing. Env and config cannot be used
@@ -366,9 +374,12 @@ def main(args=sys.argv[1:]):
                     choices=['show-backends'])
     args = ap.parse_args(args)
     if args.command == 'show-backends':
-        backends = pkg_resources.iter_entry_points(group='sphinxcontrib.images.backend')
-        if backends:
+        if backends := get_entry_points():
             for backend in backends:
-                print ('- {0.name} (from `{0.dist}` package)'.format(backend))
+                print ('- {0.name} (from package `{0.dist.name}`)'.format(backend))
         else:
             print ('No backends installed')
+
+
+if __name__ == '__main__':
+    main()

@@ -1,13 +1,13 @@
 #!/bin/sh
 
-V1=$(sed -nE "s/^.*version.*=.*([0-9]+\.[0-9]+\.[0-9]+(\.[a-z0-9]+)?).*$/\1/p" setup.py)
+V1=$(sed -nE "s/^.*version.*=.*([0-9]+\.[0-9]+\.[0-9]+(\.[a-z0-9]+)?).*$/\1/p" pyproject.toml)
 V2=$(sed -nE "s/^.*version.*=.*([0-9]+\.[0-9]+\.[0-9]+(\.[a-z0-9]+)?).*$/\1/p" sphinxcontrib/images.py)
 SUB=$(git submodule status sphinxcontrib_images_lightbox2/lightbox2 | cut -c1)
 
 printf "\n## RELEASE SPHINXCONTRIB-IMAGES TO PYPI ##\n\n"
 
 printf "# VERSION CHECK #\n"
-printf "setup.py: %s\n" "$V1"
+printf "pyproject.toml: %s\n" "$V1"
 printf "sphinxcontrib/images.py: %s\n" "$V2"
 
 if [ "$V1" != "$V2" ]; then
@@ -32,10 +32,10 @@ cat <<STEPS
 git submodule update --init --recursive
 
 
-# 2. Create a virtual environment and install twine
+# 2. Create a virtual environment and install build & twine
 python -m venv venv-twine 
 source venv-twine/bin/activate
-pip install twine
+pip install build twine
 
 # 3. Test release to TestPyPI
  - Requires registration at https://test.pypi.org/account/register/ 
@@ -46,8 +46,8 @@ pip install twine
  - Remove old distributions/builds
 rm -r dist/
 
- - Build the distribution:
-python setup.py sdist bdist_wheel
+ - Build the distribution (this can also be done by `tox -e wheel`)
+python -m build --wheel
 
  - Upload to TestPyPI
 twine upload -r testpypi dist/*
