@@ -108,13 +108,20 @@ All available options with comments:
 Thumbnail directive
 -------------------
 
-You can use it like::
+You can use it with local images::
 
     .. thumbnail:: path/to/image.jpg
 
-or::
+remote images::
 
     .. thumbnail:: http://remote/image.jpg
+
+MyST Markdown::
+
+    ```{thumbnail} path/to/image.png
+    :width: 20 %
+    :alt: Firefox logo
+    ```
 
 You can pass options like regular Sphinxs' directives::
 
@@ -250,55 +257,29 @@ Thumbnail
 
 .. thumbnail:: img.jpg
 
-Remote image (http)
-^^^^^^^^^^^^^^^^^^^^
+Remote image 
+^^^^^^^^^^^^
 
 .. sourcecode:: rst
 
-    .. thumbnail:: http://upload.wikimedia.org/wikipedia/meta/0/08/Wikipedia-logo-v2_1x.png
+    .. thumbnail:: https://www.sphinx-doc.org/en/master/_images/linux-logo.png 
         :download: false
 
-.. thumbnail:: http://upload.wikimedia.org/wikipedia/meta/0/08/Wikipedia-logo-v2_1x.png
+.. thumbnail:: https://www.sphinx-doc.org/en/master/_images/linux-logo.png 
     :download: false
 
-Remote image (https)
-^^^^^^^^^^^^^^^^^^^^
-
-.. sourcecode:: rst
-
-    .. thumbnail:: https://upload.wikimedia.org/wikipedia/meta/0/08/Wikipedia-logo-v2_1x.png
-        :download: false
-
-.. thumbnail:: https://upload.wikimedia.org/wikipedia/meta/0/08/Wikipedia-logo-v2_1x.png
-    :download: false
-
-Remote image (download http)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Remote image (download)
+^^^^^^^^^^^^^^^^^^^^^^^
 
 The image is downloaded and placed in `_build/html/_images`
 (for html build) making it availble locally.
 
 .. sourcecode:: rst
 
-    .. thumbnail:: http://upload.wikimedia.org/wikipedia/meta/0/08/Wikipedia-logo-v2_1x.png
+    .. thumbnail:: https://www.sphinx-doc.org/en/master/_images/linux-logo.png 
         :download: true
 
-.. thumbnail:: http://upload.wikimedia.org/wikipedia/meta/0/08/Wikipedia-logo-v2_1x.png
-    :download: true
-
-
-Remote image (download https)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The image is downloaded and placed in `_build/html/_images`
-(for html build) making it availble locally.
-
-.. sourcecode:: rst
-
-    .. thumbnail:: https://upload.wikimedia.org/wikipedia/meta/0/08/Wikipedia-logo-v2_1x.png
-        :download: true
-
-.. thumbnail:: https://upload.wikimedia.org/wikipedia/meta/0/08/Wikipedia-logo-v2_1x.png
+.. thumbnail:: https://www.sphinx-doc.org/en/master/_images/linux-logo.png 
     :download: true
 
 Image with forced dimensions 
@@ -367,16 +348,15 @@ Group images
 
     .. thumbnail:: img.jpg
         :group: group1
-    
-    .. thumbnail:: https://upload.wikimedia.org/wikipedia/meta/0/08/Wikipedia-logo-v2_1x.png
+
+    .. thumbnail:: https://www.sphinx-doc.org/en/master/_images/linux-logo.png 
         :group: group1
     
 .. thumbnail:: img.jpg
     :group: group1
 
-.. thumbnail:: https://upload.wikimedia.org/wikipedia/meta/0/08/Wikipedia-logo-v2_1x.png
+.. thumbnail:: https://www.sphinx-doc.org/en/master/_images/linux-logo.png 
     :group: group1
-
 
 Alignment
 ^^^^^^^^^
