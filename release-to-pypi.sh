@@ -23,7 +23,8 @@ else
     echo "SUCCESS: lightbox2 submodule initialized"
 fi
 
-read -p "Press any key to proceed to instructions ..." -n1 -s
+printf "Press [Enter] for instructions ..." 
+read ANSWER
 
 cat <<STEPS
 
@@ -44,9 +45,9 @@ pip install build twine
    e.g. from 0.9.2 to 0.9.3.pre1 (use .pre2 second test release etc.) 
 
  - Remove old distributions/builds
-rm -r dist/
+rm -r dist/ build/
 
- - Build the distribution (this can also be done by `tox -e wheel`)
+ - Build the distribution (this can also be done by \`tox -e wheel\`)
 python -m build --wheel
 
  - Upload to TestPyPI
@@ -83,9 +84,9 @@ make html
 twine upload dist/*
 
 # 7. Commit released version, tag and push
-git add setup.py sphinxcontrib/images.py
+git add project.toml sphinxcontrib/images.py
 git commit -m "Version bumped to a.b.c"
-git tag -a a.b.c -m "release a.b.c"
+git tag -a a.b.c -m "Release a.b.c"
 git push origin master
 git push origin a.b.c
 
