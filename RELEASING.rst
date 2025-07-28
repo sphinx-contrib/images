@@ -52,4 +52,4 @@ Releasing sphinxcontrib-images
    previous versions with the provided command.
 
 .. _Alternate "rc" spellings: https://peps.python.org/pep-0440/#pre-release-spelling
-.. _publishing to TestPyPI via the GitHub UI: https://github.com/sphinxcontrib/images/actions/workflows/test-publish.yml
+.. _publishing to TestPyPI via the GitHub UI: https://github.com/sphinx-contrib/images/actions/workflows/test-publish.yml
