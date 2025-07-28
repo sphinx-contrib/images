@@ -1,5 +1,3 @@
-
-import os
 from sphinxcontrib import images
 
 class LightBox2(images.Backend):
@@ -15,7 +13,9 @@ class LightBox2(images.Backend):
         'lightbox2-customize/pointer.css'
     )
 
-    def visit_image_node_html(self, writer, node):
+    def visit_image_node_html(
+        self, writer: images.Writer, node: images.image_node
+    ) -> None:
         # make links local (for local images only)
         builder = self._app.builder
         if node['uri'] in builder.images:
@@ -52,7 +52,8 @@ class LightBox2(images.Backend):
                      class="{cls}"
                      width="{width}"
                      height="{height}"
-                     alt="{alt}"/>
+                     alt="{alt}"
+                     title="{title}/>
                 '''.format(src=node['uri'],
                            cls='align-%s' % node['align'] if node['align'] else '',
                            width=node['size'][0],
@@ -61,7 +62,9 @@ class LightBox2(images.Backend):
                            title=node['title']))
 
 
-    def depart_image_node_html(self, writer, node):
+    def depart_image_node_html(
+        self, writer: images.Writer, node: images.image_node
+    ) -> None:
         writer.body.append('</a>')
         if node['show_caption'] is True:
             writer.body.append(u'''<figcaption>{title}</figcaption>

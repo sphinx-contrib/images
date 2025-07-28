@@ -1,53 +1,52 @@
-# -*- coding: utf-8 -*-
-__version__ = '1.0.1'
-__author__ = 'Tomasz Czyż <tomaszczyz@gmail.com>'
-__license__ = "Apache 2"
+from __future__ import annotations
 
-
-import os
-import sys
+import argparse
 import copy
-import uuid
+import functools
 import hashlib
 import importlib.metadata
-import argparse
-import functools
-
+import os
+import requests
 import sphinx
-from sphinx.util.osutil import copyfile
+import sys
+import uuid
 
-try:
-    from sphinx.util import logging
-
-    logger = logging.getLogger(__name__)
-except ImportError:
-    logger = None
-
-try:
-    from sphinx.util.compat import Directive
-except:
-    from docutils.parsers.rst import Directive
+from collections.abc import Iterable
+from docutils import nodes
+from docutils.parsers.rst import Directive, directives
+from sphinx.util import logging, osutil
+from typing import Any, Literal, Protocol, TYPE_CHECKING
 
 try:
     from sphinx.util.display import status_iterator
 except ImportError:
-    try:
-        from sphinx.util import status_iterator
-    except ImportError:
-        pass
+    # remove when Sphinx < 6.1 is not supported
+    from sphinx.util import status_iterator  # type: ignore[no-redef]
 
-from sphinx.util.osutil import ensuredir
+if TYPE_CHECKING:
+    from sphinx.application import Sphinx as _Sphinx
+    from sphinx.config import Config
+    from sphinx.environment import BuildEnvironment as _BuildEnvironment
+    from sphinx.util.typing import ExtensionMetadata
 
-from docutils import nodes
-from docutils.parsers.rst import directives
 
-import requests
+    class BuildEnvironment(_BuildEnvironment):
+        remote_images: dict[str, str]
 
+    class Sphinx(_Sphinx):
+        env: BuildEnvironment
+        sphinxcontrib_images_backend: type[Backend]
+
+
+__version__ = '1.0.1'
+__author__ = 'Tomasz Czyż <tomaszczyz@gmail.com>'
+__license__ = "Apache 2"
+
+logger = logging.getLogger(__name__)
 
 STATICS_DIR_NAME = '_static'
 
-
-DEFAULT_CONFIG = dict(
+DEFAULT_CONFIG = dict[str, Any](
     backend='LightBox2',
     default_image_width='100%',
     default_image_height='auto',
@@ -60,25 +59,39 @@ DEFAULT_CONFIG = dict(
     show_caption=False,
 )
 
-def get_entry_points():
+def get_entry_points() -> Iterable[importlib.metadata.EntryPoint]:
     group = 'sphinxcontrib.images.backend'
     return (
-        importlib.metadata.entry_points(group=group)
+        importlib.metadata.entry_points(group=group)  # type: ignore[return-value]
         if sys.version_info > (3, 10)
         else importlib.metadata.entry_points()[group]
     )
 
 
-class Backend(object):
-    STATIC_FILES = ()
+class Writer(Protocol):
+    body: list[str]
 
-    def __init__(self, app):
+    def visit_image(self, node: image_node) -> None:
+        ...
+
+    def depart_image(self, node: image_node) -> None:
+        ...
+
+
+class Backend:
+    STATIC_FILES: tuple[str, ...] = ()
+
+    def __init__(self, app: Sphinx) -> None:
         self._app = app
 
-    def visit_image_node_fallback(self, writer, node):
+    def visit_image_node_fallback(
+        self, writer: Writer, node: image_node
+    ) -> None:
         writer.visit_image(node)
 
-    def depart_image_node_fallback(self, writer, node):
+    def depart_image_node_fallback(
+        self, writer: Writer, node: image_node
+    ) -> None:
         writer.depart_image(node)
 
 
@@ -86,11 +99,7 @@ class image_node(nodes.image, nodes.General, nodes.Element):
     pass
 
 
-class gallery_node(nodes.image, nodes.General, nodes.Element):
-    pass
-
-
-def directive_boolean(value):
+def directive_boolean(value: str) -> bool:
     if not value.strip():
         raise ValueError("No argument provided but required")
     if value.lower().strip() in ["yes", "1", 1, "true", "ok"]:
@@ -98,8 +107,12 @@ def directive_boolean(value):
     elif value.lower().strip() in ['no', '0', 0, 'false', 'none']:
         return False
     else:
-        raise ValueError(u"Please use on of: yes, true, no, false. "
-                         u"Do not use `{}` as boolean.".format(value))
+        raise ValueError("Please use on of: yes, true, no, false. "
+                         f"Do not use `{value}` as boolean.")
+
+
+def align_option(value: str) -> Literal['left', 'center', 'right']:
+    return directives.choice(value, ('left', 'center', 'right'))  # type: ignore[return-value]
 
 
 class ImageDirective(Directive):
@@ -108,33 +121,24 @@ class ImageDirective(Directive):
     It's backward compatibile and it's adding more cool stuff.
     '''
 
-    align_values = ('left', 'center', 'right')
-
-    def align(argument):
-        # This is not callable as self.align.  We cannot make it a
-        # staticmethod because we're saving an unbound method in
-        # option_spec below.
-        return directives.choice(argument, ImageDirective.align_values)
-
     has_content = True
     required_arguments = True
 
     option_spec = {
         'width': directives.length_or_percentage_or_unitless,
         'height': directives.length_or_unitless,
-        'strech': directives.choice,
 
         'group': directives.unchanged,
         'class': directives.class_option,  # or str?
         'alt': directives.unchanged,
         'download': directive_boolean,
         'title': directives.unchanged,
-        'align': align,
+        'align': align_option,
         'show_caption': directive_boolean,
         'legacy_class': directives.class_option,
     }
 
-    def run(self):
+    def run(self) -> list[image_node]:
         env = self.state.document.settings.env
         conf = env.app.config.images_config
 
@@ -157,27 +161,25 @@ class ImageDirective(Directive):
         #TODO: something is broken here, not parsed as expected
         description = nodes.paragraph()
         content = nodes.paragraph()
-        content += [nodes.Text(u"%s" % x) for x in self.content]
-        self.state.nested_parse(content,
-                                0,
-                                description)
+        content += [nodes.Text(str(x)) for x in self.content]
+        self.state.nested_parse(content, 0, description)
 
         img = image_node()
+        uri = self.arguments[0]
 
-        if self.is_remote(self.arguments[0]):
+        if self.is_remote(uri):
             img['remote'] = True
             if download:
-                img['uri'] = os.path.join('_images', hashlib.sha1(self.arguments[0].encode()).hexdigest())
-                img['remote_uri'] = self.arguments[0]
-                env.remote_images[img['remote_uri']] = img['uri']
-                env.images.add_file('', img['uri'])
+                local_uri = img['uri'] = os.path.join('_images', hashlib.sha1(uri.encode()).hexdigest())
+                img['remote_uri'] = uri
+                env.remote_images[uri] = local_uri
+                env.images.add_file('', local_uri)
             else:
-                img['uri'] = self.arguments[0]
-                img['remote_uri'] = self.arguments[0]
+                img['uri'] = img['remote_uri'] = uri
         else:
-            img['uri'] = self.arguments[0]
+            img['uri'] = uri
             img['remote'] = False
-            env.images.add_file('', img['uri'])
+            env.images.add_file('', uri)
 
         img['content'] = description.astext()
 
@@ -198,7 +200,7 @@ class ImageDirective(Directive):
         img['align'] = align
         return [img]
 
-    def is_remote(self, uri):
+    def is_remote(self, uri: str) -> bool:
         uri = uri.strip()
         env = self.state.document.settings.env
         app_directory = os.path.dirname(os.path.abspath(self.state.document.settings._source))
@@ -215,19 +217,17 @@ class ImageDirective(Directive):
             return False
         if '://' in uri:
             return True
-        raise ValueError('Image URI `{}` have to be local relative or '
-                         'absolute path to image, or remote address.'
-                         .format(uri))
+        raise ValueError(f'Image URI `{uri}` have to be local relative or '
+                         'absolute path to image, or remote address.')
 
 
-def install_backend_static_files(app, env):
+def install_backend_static_files(app: Sphinx, env: BuildEnvironment) -> None:
     STATICS_DIR_PATH = os.path.join(app.builder.outdir, STATICS_DIR_NAME)
     dest_path = os.path.join(STATICS_DIR_PATH, 'sphinxcontrib-images',
                              app.sphinxcontrib_images_backend.__class__.__name__)
     files_to_copy = app.sphinxcontrib_images_backend.STATIC_FILES
 
-    for source_file_path in (app.builder.status_iterator
-        if hasattr(app.builder, 'status_iterator') else status_iterator)(
+    for source_file_path in status_iterator(
             files_to_copy,
             'Copying static files for sphinxcontrib-images...',
             'brown', len(files_to_copy)):
@@ -235,13 +235,17 @@ def install_backend_static_files(app, env):
         dest_file_path = os.path.join(dest_path, source_file_path)
 
         if not os.path.exists(os.path.dirname(dest_file_path)):
-            ensuredir(os.path.dirname(dest_file_path))
+            osutil.ensuredir(os.path.dirname(dest_file_path))
 
-        source_file_path = os.path.join(os.path.dirname(
-            sys.modules[app.sphinxcontrib_images_backend.__class__.__module__].__file__),
-            source_file_path)
+        assert (
+            backend_path := sys.modules[
+                app.sphinxcontrib_images_backend.__class__.__module__
+            ].__file__
+        )
+        source_file_path = os.path.join(os.path.dirname(backend_path),
+                                        source_file_path)
 
-        copyfile(source_file_path, dest_file_path)
+        osutil.copyfile(source_file_path, dest_file_path)
 
         if dest_file_path.endswith('.js'):
             app.add_js_file(os.path.relpath(dest_file_path, STATICS_DIR_PATH))
@@ -249,11 +253,10 @@ def install_backend_static_files(app, env):
             app.add_css_file(os.path.relpath(dest_file_path, STATICS_DIR_PATH))
 
 
-def download_images(app, env):
+def download_images(app: Sphinx, env: BuildEnvironment) -> None:
     conf = app.config.images_config
 
-    for src in (app.builder.status_iterator
-        if hasattr(app.builder, 'status_iterator') else status_iterator)(
+    for src in status_iterator(
             env.remote_images,
             'Downloading remote images...',
             'brown',
@@ -261,30 +264,28 @@ def download_images(app, env):
 
         dst = os.path.join(env.srcdir, env.remote_images[src])
         if not os.path.isfile(dst):
-            logger.info('{} -> {} (downloading)'
-                      .format(src, dst))
+            logger.info(f'{src!r} -> {dst!r} (downloading)')
             with open(dst, 'wb') as f:
                 # TODO: apply reuqests_kwargs
                 try:
                     f.write(requests.get(src,
                                         **conf['requests_kwargs']).content)
                 except requests.ConnectionError:
-                    logger.info("Cannot download `{}`".format(src))
+                    logger.info(f"Cannot download `{src!r}`")
         else:
-            logger.info('{} -> {} (already in cache)'
-                      .format(src, dst))
+            logger.info(f'{src!r} -> {dst!r} (already in cache)')
 
 
-def update_config(app, config):
+def update_config(app: Sphinx, config: Config) -> None:
     '''Ensure all config values are defined'''
 
     merged = copy.deepcopy(DEFAULT_CONFIG)
     merged.update(config.images_config)
     config.images_config = merged
 
-def configure_backend(app):
+def configure_backend(app: Sphinx) -> None:
     config = app.config.images_config
-    ensuredir(os.path.join(app.env.srcdir, config['cache_path']))
+    osutil.ensuredir(os.path.join(app.env.srcdir, config['cache_path']))
 
     # html builder
     # self.relfn2path(imguri, docname)
@@ -297,25 +298,24 @@ def configure_backend(app):
             ).load()
         except StopIteration:
             raise IndexError("Cannot find sphinxcontrib-images backend "
-                                "with name `{}`.".format(backend_name_or_callable))
+                             f"with name `{backend_name_or_callable!r}`.")
     elif callable(backend_name_or_callable):
         backend = backend_name_or_callable
     else:
         raise TypeError("sphinxcontrib-images backend is configured "
                         "improperly. It has to be a string (name of "
                         "installed backend) or callable which returns "
-                        "backend instance but is `{}` (type:`{}`). Please read "
+                        "backend instance but is "
+                        f"`{backend_name_or_callable!r}`. Please read "
                         "sphinxcontrib-images documentation for "
-                        "more informations."
-                        .format(backend_name_or_callable,
-                                type(backend_name_or_callable)))
+                        "more information.")
 
     try:
         backend = backend(app)
     except TypeError as error:
-        logger.info('Cannot instantiate sphinxcontrib-images backend `{}`. '
-                 'Please, select correct backend. Available backends: {}.'
-                 .format(config['backend'], ', '.join(ep.name for ep in get_entry_points())))
+        logger.info('Cannot instantiate sphinxcontrib-images backend '
+                    f'`{config["backend"]}`. Please, select correct backend. '
+                    f'Available backends: {", ".join(ep.name for ep in get_entry_points())}.')
         raise SystemExit(1)
 
     # remember the chosen backend for processing. Env and config cannot be used
@@ -323,8 +323,7 @@ def configure_backend(app):
     app.sphinxcontrib_images_backend = backend
 
     logger.info('Initiated sphinxcontrib-images backend: ', nonl=True)
-    logger.info('`{}`'.format(str(backend.__class__.__module__ +
-                           ':' + backend.__class__.__name__)))
+    logger.info(f'`{backend.__class__.__module__}:{backend.__class__.__name__}`')
 
     def backend_methods(node, output_type):
         def backend_method(f):
@@ -332,12 +331,16 @@ def configure_backend(app):
             def inner_wrapper(writer, node):
                 return f(writer, node)
             return inner_wrapper
-        signature = '_{}_{}'.format(node.__name__, output_type)
-        return (backend_method(getattr(backend, 'visit' + signature,
-                               getattr(backend, 'visit_' + node.__name__ + '_fallback'))),
-                backend_method(getattr(backend, 'depart' + signature,
-                               getattr(backend, 'depart_' + node.__name__ + '_fallback'))))
 
+        return tuple(
+            backend_method(
+                getattr(
+                    backend,
+                    f'{name}_{node.__name__}_{output_type}',
+                    getattr(backend, f'{name}_{node.__name__}_fallback'),
+                )
+            ) for name in ('visit', 'depart')
+        )
 
     # add new node to the stack
     # connect backend processing methods to this node
@@ -351,7 +354,7 @@ def configure_backend(app):
         app.add_directive('image', ImageDirective)
     app.env.remote_images = {}
 
-def setup(app):
+def setup(app: Sphinx) -> ExtensionMetadata:
     app.require_sphinx('1.0')
     app.add_config_value('images_config', {}, 'env')
     app.connect('config-inited', update_config)
@@ -359,25 +362,21 @@ def setup(app):
     app.connect('env-updated', download_images)
     app.connect('env-updated', install_backend_static_files)
 
-    global logger
-
-    if logger is None:
-        logger = app
-
     return {'version': sphinx.__version__, 'parallel_read_safe': True}
 
 
 def main(args=sys.argv[1:]):
-    ap = argparse.ArgumentParser()
-    ap.add_argument("command",
+    parser = argparse.ArgumentParser()
+    parser.add_argument("command",
                     choices=['show-backends'])
-    args = ap.parse_args(args)
+    args = parser.parse_args(args)
     if args.command == 'show-backends':
         if backends := get_entry_points():
             for backend in backends:
-                print ('- {0.name} (from package `{0.dist.name}`)'.format(backend))
+                assert backend.dist
+                print(f'- {backend.name} (from package `{backend.dist.name}`)')
         else:
-            print ('No backends installed')
+            print('No backends installed')
 
 
 if __name__ == '__main__':
