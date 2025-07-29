@@ -47,6 +47,16 @@ Download = "https://pypi.python.org/pypi/sphinxcontrib-images"
 Issues = "https://github.com/sphinx-contrib/images/issues"
 Repository = "https://github.com/sphinx-contrib/images"
 
+[tool.mypy]
+check_untyped_defs = true
+modules = ["sphinxcontrib_images_lightbox2"]
+packages = ["sphinxcontrib.images"]
+pretty = true
+show_error_context = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unreachable = true
+
 [tool.setuptools.dynamic]
 version = {attr = "sphinxcontrib.images.__version__"}
 
