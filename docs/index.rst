@@ -380,7 +380,7 @@ Caption / title
         :title: Some title / caption.
     
     .. thumbnail:: img.jpg
-        :title: Some title / caption.
+        :title: Some nice title to the picture.
         :show_caption: True
 
 .. thumbnail:: img.jpg
